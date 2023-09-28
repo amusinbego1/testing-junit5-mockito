@@ -20,6 +20,8 @@ import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.*;
 
 
@@ -49,52 +51,53 @@ class VisitSDJpaServiceTest {
     @Test
     void findAll() {
         var visitSet = new HashSet<>(visitDbAsMap.values());
-        when(repository.findAll()).thenReturn(visitSet);
+        given(repository.findAll()).willReturn(visitSet);
 
         Set<Visit> returnedSet = service.findAll();
+
         assertAll(
                 () -> assertEquals(visitSet.size(), returnedSet.size()),
                 () -> assertTrue(visitSet.containsAll(returnedSet))
         );
-        verify(repository).findAll();
+        then(repository).should(atMostOnce()).findAll();
     }
 
     @ParameterizedTest
     @CsvSource({"1", "2", "3"})
     void findById(Long ID) {
-        when(repository.findById(anyLong())).thenAnswer(
+        given(repository.findById(anyLong())).willAnswer(
                 invocation -> Optional.of(visitDbAsMap.get((Long)invocation.getArgument(0)))
         );
         assertEquals(visitDbAsMap.get(ID), service.findById(ID));
-        verify(repository).findById(any());
+        then(repository).should().findById(anyLong());
     }
 
     @Test
     void save() {
-        when(repository.save(any(Visit.class))).thenAnswer((invocation -> {
+        given(repository.save(any(Visit.class))).willAnswer((invocation -> {
             var visitArgument = (Visit) invocation.getArgument(0);
             visitDbAsMap.put(4L, visitArgument);
             return visitArgument;
         }));
-        when(repository.findById(anyLong())).thenAnswer(
+        given(repository.findById(anyLong())).willAnswer(
                 invocation -> Optional.of(visitDbAsMap.get((Long)invocation.getArgument(0)))
         );
 
         assertEquals(service.save(new Visit()), service.findById(4L));
         assertTrue(visitDbAsMap.containsKey(4L));
 
-        verify(repository).save(any(Visit.class));
+        then(repository).should().save(any(Visit.class));
     }
 
     @Test
     void delete() {
         service.delete(new Visit());
-        verify(repository).delete(any(Visit.class));
+        then(repository).should().delete(any(Visit.class));
     }
 
     @Test
     void deleteById() {
         service.deleteById(1L);
-        verify(repository).deleteById(anyLong());
+        then(repository).should().deleteById(anyLong());
     }
 }
