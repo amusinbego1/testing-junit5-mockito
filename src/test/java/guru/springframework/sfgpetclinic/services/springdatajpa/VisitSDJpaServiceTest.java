@@ -50,11 +50,14 @@ class VisitSDJpaServiceTest {
 
     @Test
     void findAll() {
+        //given
         var visitSet = new HashSet<>(visitDbAsMap.values());
         given(repository.findAll()).willReturn(visitSet);
 
+        //when
         Set<Visit> returnedSet = service.findAll();
 
+        //then
         assertAll(
                 () -> assertEquals(visitSet.size(), returnedSet.size()),
                 () -> assertTrue(visitSet.containsAll(returnedSet))
@@ -65,15 +68,19 @@ class VisitSDJpaServiceTest {
     @ParameterizedTest
     @CsvSource({"1", "2", "3"})
     void findById(Long ID) {
+        //given
         given(repository.findById(anyLong())).willAnswer(
                 invocation -> Optional.of(visitDbAsMap.get((Long)invocation.getArgument(0)))
         );
+
+        //when,then
         assertEquals(visitDbAsMap.get(ID), service.findById(ID));
         then(repository).should().findById(anyLong());
     }
 
     @Test
     void save() {
+        //given
         given(repository.save(any(Visit.class))).willAnswer((invocation -> {
             var visitArgument = (Visit) invocation.getArgument(0);
             visitDbAsMap.put(4L, visitArgument);
@@ -83,6 +90,7 @@ class VisitSDJpaServiceTest {
                 invocation -> Optional.of(visitDbAsMap.get((Long)invocation.getArgument(0)))
         );
 
+        //when,then
         assertEquals(service.save(new Visit()), service.findById(4L));
         assertTrue(visitDbAsMap.containsKey(4L));
 
@@ -91,13 +99,19 @@ class VisitSDJpaServiceTest {
 
     @Test
     void delete() {
+        //given,when
         service.delete(new Visit());
+
+        //then
         then(repository).should().delete(any(Visit.class));
     }
 
     @Test
     void deleteById() {
+        //given,when
         service.deleteById(1L);
+
+        //then
         then(repository).should().deleteById(anyLong());
     }
 }
