@@ -34,9 +34,6 @@ class VisitSDJpaServiceTest {
     @InjectMocks
     private VisitSDJpaService service;
 
-    @Captor
-    private ArgumentCaptor<Long> captor;
-
     private Map<Long, Visit> visitDbAsMap;
 
     @BeforeEach
@@ -97,21 +94,39 @@ class VisitSDJpaServiceTest {
         then(repository).should().save(any(Visit.class));
     }
 
-    @Test
-    void delete() {
-        //given,when
-        service.delete(new Visit());
+    @ParameterizedTest
+    @CsvSource({"1", "2", "3"})
+    void delete(long toDeleteObjectKey) {
+        int sizeBeforeDeletion = visitDbAsMap.size();
+        Visit toDeleteObject = visitDbAsMap.get(toDeleteObjectKey);
 
-        //then
-        then(repository).should().delete(any(Visit.class));
+        doAnswer(invocation -> {
+            visitDbAsMap.remove(toDeleteObjectKey);
+            return null;
+        }).when(repository).delete(argThat(arg -> arg == toDeleteObject));
+
+        service.delete(toDeleteObject);
+
+        assertAll(
+                () -> assertEquals(sizeBeforeDeletion-1, visitDbAsMap.size()),
+                () -> assertFalse(visitDbAsMap.containsKey(toDeleteObjectKey))
+        );
+        verify(repository).delete(any(Visit.class));
     }
 
     @Test
     void deleteById() {
-        //given,when
-        service.deleteById(1L);
+        var sizeBeforeDeletion = visitDbAsMap.size();
+        doAnswer(invocation -> {
+            Long arg = invocation.getArgument(0);
+            if(arg > 3L || arg < 1L)
+                throw new RuntimeException("No such element with given ID");
+            visitDbAsMap.remove(arg);
+            return null;
+        }).when(repository).deleteById(anyLong());
 
-        //then
+        service.deleteById(1L);
+        assertEquals(sizeBeforeDeletion-1, visitDbAsMap.size());
         then(repository).should().deleteById(anyLong());
     }
 }
